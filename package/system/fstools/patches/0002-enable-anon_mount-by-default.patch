@@ -1,0 +1,13 @@
+Index: fstools-2017-07-12-0dfe61a8/block.c
+===================================================================
+--- fstools-2017-07-12-0dfe61a8.orig/block.c
++++ fstools-2017-07-12-0dfe61a8/block.c
+@@ -1581,7 +1581,7 @@ static int main_detect(int argc, char **
+ 	cache_load(0);
+ 	printf("config 'global'\n");
+ 	printf("\toption\tanon_swap\t'0'\n");
+-	printf("\toption\tanon_mount\t'0'\n");
++	printf("\toption\tanon_mount\t'1'\n");
+ 	printf("\toption\tauto_swap\t'1'\n");
+ 	printf("\toption\tauto_mount\t'1'\n");
+ 	printf("\toption\tdelay_root\t'5'\n");

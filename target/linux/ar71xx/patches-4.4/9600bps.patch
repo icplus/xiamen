@@ -1,0 +1,54 @@
+diff --git a/drivers/usb/serial/cp210x.c b/drivers/usb/serial/cp210x.c
+index b555ee0..37647a9 100644
+--- a/drivers/usb/serial/cp210x.c
++++ b/drivers/usb/serial/cp210x.c
+@@ -51,9 +51,12 @@ static int cp210x_port_remove(struct usb_serial_port *);
+ static void cp210x_dtr_rts(struct usb_serial_port *p, int on);
+ 
+ #define CP210X_SPIC_TTY_NAME "ttyUSB0"
++#define WORKQUEUE_DELAY_TIME	1
+ static long cp210x_ref = 0;
++
+ struct cp210x_work {
+ 	struct work_struct read_enable;
++	struct delayed_work _read_enable;
+ 	struct usb_serial_port *port;
+ } cp210x_work;
+ 
+@@ -69,6 +72,14 @@ static int cp210x_write(struct tty_struct *tty, struct usb_serial_port *port,
+ 	return usb_serial_generic_write(tty, port, buf, count);;
+ }
+ 
++static void _cp210x_rx_en(struct delayed_work *work)
++{
++	struct cp210x_work *w = container_of(work, struct cp210x_work,
++						_read_enable);
++	gpio_set_value(3, 0);
++	cp210x_ref = 0; 
++}
++
+ static void cp210x_rx_en(struct work_struct *work)
+ {
+ 	struct cp210x_work *w = container_of(work, struct cp210x_work,
+@@ -76,11 +87,10 @@ static void cp210x_rx_en(struct work_struct *work)
+ 	struct usb_serial_port *port = w->port;
+ 						
+ 	if (cp210x_ref && cp210x_tx_empty(port)) {
+-		gpio_set_value(3, 0);
+-		cp210x_ref = 0;
++		/* XXX: Delayed only once - can try more */
++		schedule_delayed_work(&w->_read_enable, msecs_to_jiffies(WORKQUEUE_DELAY_TIME));
+ 	} else if (cp210x_ref) {
+ 		dev_dbg(&port->dev, "%s - still have some data left behind, wait for next round\n", __func__);
+-		/* FIXME: it seems that it's better to replace schedule_work with schedule_delayed_work */
+ 		schedule_work(&w->read_enable);
+ 	}
+ 	/* The entry pointer is deleted by the netdev destructor. */
+@@ -96,6 +106,7 @@ static void cp210x_write_bulk_callback(struct urb *urb)
+ 		if (!cp210x_work.port) {
+ 			cp210x_work.port = port;
+ 			INIT_WORK(&cp210x_work.read_enable, cp210x_rx_en);
++			INIT_DELAYED_WORK(&cp210x_work._read_enable, _cp210x_rx_en);
+ 		}
+ 		schedule_work(&cp210x_work.read_enable);
+ 	}

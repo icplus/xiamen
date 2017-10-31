@@ -1,0 +1,28 @@
+diff --git a/libfstools/mtd.c b/libfstools/mtd.c
+index a1811c3..3f676a1 100644
+--- a/libfstools/mtd.c
++++ b/libfstools/mtd.c
+@@ -192,6 +192,14 @@ static int mtd_volume_identify(struct volume *v)
+ 		ULOG_ERR("reading %s failed\n", v->name);
+ 		return -1;
+ 	}
++	/*
++	 * The following fix the inconstant filetype returned
++	 * while the internal offset of fd advanced.
++	 */
++	if (lseek(p->fd, 0, SEEK_SET) == (off_t) -1) {
++		ULOG_ERR("lseek/read failed\n");
++		return -1;
++	}
+ 
+ 	sz = read(p->fd, &deadc0de, sizeof(deadc0de));
+ 
+@@ -213,7 +221,7 @@ static int mtd_volume_identify(struct volume *v)
+ 		return FS_JFFS2;
+ 	}
+ 
+-	if (v->type == UBIVOLUME && deadc0de == 0xffffffff) {
++	if ((v->type == UBIVOLUME || v->type == NANDFLASH) && deadc0de == 0xffffffff) {
+ 		return FS_JFFS2;
+ 	}
+ 

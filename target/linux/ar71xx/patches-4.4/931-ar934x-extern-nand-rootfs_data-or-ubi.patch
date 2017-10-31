@@ -1,0 +1,37 @@
+Index: linux-3.18.45/drivers/mtd/nand/Kconfig
+===================================================================
+--- linux-3.18.45.orig/drivers/mtd/nand/Kconfig
++++ linux-3.18.45/drivers/mtd/nand/Kconfig
+@@ -532,6 +532,14 @@ config MTD_NAND_AR934X
+ 	tristate "NAND flash driver for the Qualcomm Atheros AR934x/QCA955x SoCs"
+ 	depends on (SOC_AR934X || SOC_QCA955X)
+ 
++config MTD_NAND_AR934X_ROOTFS_DATA
++	tristate "Use the external nand flash as rootfs_data volume"
++	depends on MTD_NAND_AR934X
++
++config MTD_NAND_AR934X_UBI
++	tristate "Use the external nand flash as ubi/data volume"
++	depends on (MTD_NAND_AR934X && !MTD_NAND_AR934X_ROOTFS_DATA)
++
+ config MTD_NAND_AR934X_HW_ECC
+ 	bool "Hardware ECC support for the AR934X NAND Controller (EXPERIMENTAL)"
+ 	depends on MTD_NAND_AR934X
+Index: linux-3.18.45/include/linux/platform/ar934x_nfc.h
+===================================================================
+--- linux-3.18.45.orig/include/linux/platform/ar934x_nfc.h
++++ linux-3.18.45/include/linux/platform/ar934x_nfc.h
+@@ -12,7 +12,13 @@
+ #ifndef _AR934X_NFC_PLATFORM_H
+ #define _AR934X_NFC_PLATFORM_H
+ 
++#ifdef CONFIG_MTD_NAND_AR934X_ROOTFS_DATA
++#define AR934X_NFC_DRIVER_NAME		"rootfs_data"
++#elif defined(CONFIG_MTD_NAND_AR934X_UBI)
++#define AR934X_NFC_DRIVER_NAME		"ubi" /* Or "data" */
++#else
+ #define AR934X_NFC_DRIVER_NAME		"ar934x-nfc"
++#endif /* CONFIG_MTD_NAND_AR934X_ROOTFS_DATA */
+ 
+ struct mtd_info;
+ struct mtd_partition;
